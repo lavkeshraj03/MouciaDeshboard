@@ -62,7 +62,11 @@ exports.setupAdmin = async (req, res) => {
         }
         const hashedPassword = await bcrypt.hash(password, 10);
         user = await User.create({
-            name, email, password: hashedPassword, role: 'Admin' // Force admin role for setup
+            userId: 'ADMIN-01', // Satisfy required Mongoose validation
+            name,
+            email,
+            password: hashedPassword,
+            role: 'Admin' // Force admin role for setup
         });
         res.status(201).json({ message: 'Admin created successfully', user: { id: user._id, email: user.email } });
     } catch (error) {
