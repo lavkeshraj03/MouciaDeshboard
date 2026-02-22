@@ -1,0 +1,10 @@
+{
+    "name": "moucia-dashboard-root",
+    "version": "1.0.0",
+    "description": "Root package manager for Moucia Dashboard",
+    "scripts": {
+        "dev:frontend": "npm run dev --prefix moucia-dashboard/frontend",
+        "dev:backend": "node moucia-dashboard/backend/server.js",
+        "dev": "npm run dev:frontend & npm run dev:backend"
+    }
+}
