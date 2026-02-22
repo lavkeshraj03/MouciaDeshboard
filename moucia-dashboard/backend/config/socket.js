@@ -9,8 +9,12 @@ module.exports = {
         const { Server } = require('socket.io');
         ioInstance = new Server(server, {
             cors: {
-                origin: process.env.CLIENT_URL || 'http://localhost:3000',
-                methods: ['GET', 'POST']
+                origin: [
+                    "http://localhost:3000",
+                    "https://moucia-deshboard-w3zt.vercel.app"
+                ],
+                methods: ['GET', 'POST'],
+                credentials: true
             }
         });
 

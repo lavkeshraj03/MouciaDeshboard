@@ -1,7 +1,12 @@
 import axios from 'axios';
 
+let resolvedBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://mouciadeshboard.onrender.com/api';
+if (resolvedBaseUrl && !resolvedBaseUrl.endsWith('/api')) {
+    resolvedBaseUrl += '/api';
+}
+
 const api = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://mouciadeshboard.onrender.com/api',
+    baseURL: resolvedBaseUrl,
     headers: {
         'Content-Type': 'application/json',
     },
