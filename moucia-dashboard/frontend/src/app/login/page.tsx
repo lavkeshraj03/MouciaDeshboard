@@ -22,7 +22,7 @@ export default function LoginPage() {
         setError('');
 
         try {
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://mouciadeshboard.onrender.com';
             const response = await axios.post(`${apiUrl}/api/auth/login`, { email, password });
             login(response.data.token, response.data.user);
         } catch (err: any) {
