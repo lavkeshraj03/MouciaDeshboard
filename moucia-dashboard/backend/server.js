@@ -15,7 +15,9 @@ const server = http.createServer(app);
 app.use(cors({
     origin: [
         "http://localhost:3000",
-        "https://moucia-deshboard-w3zt.vercel.app"
+        "https://moucia-deshboard-w3zt.vercel.app",
+        "https://moucia-deshboard.vercel.app",
+        "https://mouciadeshboard.vercel.app"
     ],
     credentials: true,
     optionsSuccessStatus: 200

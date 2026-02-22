@@ -11,7 +11,9 @@ module.exports = {
             cors: {
                 origin: [
                     "http://localhost:3000",
-                    "https://moucia-deshboard-w3zt.vercel.app"
+                    "https://moucia-deshboard-w3zt.vercel.app",
+                    "https://moucia-deshboard.vercel.app",
+                    "https://mouciadeshboard.vercel.app"
                 ],
                 methods: ['GET', 'POST'],
                 credentials: true
