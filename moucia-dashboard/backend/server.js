@@ -11,7 +11,13 @@ const app = express();
 const server = http.createServer(app);
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: [
+        "http://localhost:3000",
+        "https://moucia-desboard-w3zt.vercel.app"
+    ],
+    credentials: true
+}));
 app.use(express.json());
 
 // Routes

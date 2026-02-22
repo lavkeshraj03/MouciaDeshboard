@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/services/api';
+import axios from 'axios';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,7 +22,8 @@ export default function LoginPage() {
         setError('');
 
         try {
-            const response = await api.post('/auth/login', { email, password });
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+            const response = await axios.post(`${apiUrl}/api/auth/login`, { email, password });
             login(response.data.token, response.data.user);
         } catch (err: any) {
             setError(err.response?.data?.message || 'Login failed. Please try again.');
