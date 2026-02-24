@@ -23,6 +23,7 @@ interface AttendanceRecord {
     totalWorkedSeconds: number;
     status: string;
     completedShift: boolean;
+    sessions?: any[];
 }
 
 export default function AdminAttendance() {
@@ -93,6 +94,8 @@ export default function AdminAttendance() {
                                 <tr className="bg-slate-50/50 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-widest">
                                     <th className="px-6 py-4">Employee</th>
                                     <th className="px-6 py-4">Date</th>
+                                    <th className="px-6 py-4">Check In</th>
+                                    <th className="px-6 py-4">Check Out</th>
                                     <th className="px-6 py-4 text-center">Status</th>
                                     <th className="px-6 py-4 text-center">Work Duration</th>
                                     <th className="px-6 py-4 text-center">Shift Target</th>
@@ -107,6 +110,12 @@ export default function AdminAttendance() {
                                         </td>
                                         <td className="px-6 py-4 font-bold text-slate-700">
                                             {new Date(record.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                                        </td>
+                                        <td className="px-6 py-4 text-slate-500 font-medium whitespace-nowrap">
+                                            {record.sessions && record.sessions.length > 0 && record.sessions[0].startTime ? new Date(record.sessions[0].startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}
+                                        </td>
+                                        <td className="px-6 py-4 text-slate-500 font-medium whitespace-nowrap">
+                                            {record.sessions && record.sessions.length > 0 ? (record.sessions[record.sessions.length - 1].endTime ? new Date(record.sessions[record.sessions.length - 1].endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Working') : '-'}
                                         </td>
                                         <td className="px-6 py-4 text-center">
                                             <Badge variant="outline" className={`px-2 py-0.5 text-[9px] font-bold ${record.status === 'Present' ? 'bg-green-50 text-green-700 border-green-100' :

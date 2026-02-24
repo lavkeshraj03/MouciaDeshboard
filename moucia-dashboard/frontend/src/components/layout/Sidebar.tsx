@@ -41,7 +41,12 @@ export default function Sidebar() {
 
         // Polling every minute to keep count fresh
         const interval = setInterval(fetchUnreadCount, 60000);
-        return () => clearInterval(interval);
+        window.addEventListener('notificationsUpdated', fetchUnreadCount);
+
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('notificationsUpdated', fetchUnreadCount);
+        };
     }, [user]);
 
     const employeeNavItems = [

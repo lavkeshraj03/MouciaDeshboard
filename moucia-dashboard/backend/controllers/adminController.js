@@ -5,16 +5,28 @@ const Attendance = require('../models/Attendance');
 exports.getStats = async (req, res) => {
     try {
         const totalEmployees = await User.countDocuments({ role: { $ne: 'Admin' } });
-        const activeProjects = await Task.countDocuments({ status: { $ne: 'Completed' } }); // Proxy for active projects
+        const onlineEmployees = await User.countDocuments({ role: { $ne: 'Admin' }, isOnline: true });
+
+        const totalTasks = await Task.countDocuments();
+        const activeProjects = await Task.countDocuments({ status: { $ne: 'Completed' } });
         const tasksInProgress = await Task.countDocuments({ status: 'In Progress' });
         const completedTasks = await Task.countDocuments({ status: 'Completed' });
+
+        const employeesPercent = totalEmployees > 0 ? Math.round((onlineEmployees / totalEmployees) * 100) : 0;
+        const activeProjectsPercent = totalTasks > 0 ? Math.round((activeProjects / totalTasks) * 100) : 0;
+        const tasksInProgressPercent = totalTasks > 0 ? Math.round((tasksInProgress / totalTasks) * 100) : 0;
+        const completedTasksPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
         res.status(200).json({
             stats: {
                 totalEmployees,
+                employeesPercent,
                 activeProjects,
+                activeProjectsPercent,
                 tasksInProgress,
-                completedTasks
+                tasksInProgressPercent,
+                completedTasks,
+                completedTasksPercent
             }
         });
     } catch (error) {
@@ -26,27 +38,57 @@ exports.getWorkforceStatus = async (req, res) => {
     try {
         // Fetch all users except admins
         const users = await User.find({ role: { $ne: 'Admin' } })
-            .select('name email role department joiningDate reportingTo workLocation isActive isOnline todayWorkedSeconds')
+            .select('name email role department joiningDate reportingTo workLocation isActive isOnline todayWorkedSeconds todayActiveSeconds todayIdleSeconds todayAwaySeconds')
             .populate('reportingTo', 'name')
             .sort({ isOnline: -1, name: 1 });
 
-        // Map status and calculate productivity (mock logic for now)
-        const workforce = users.map(user => ({
-            id: user._id,
-            userId: user._id.toString(),
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            department: user.department,
-            joiningDate: user.joiningDate,
-            reportingTo: user.reportingTo,
-            workLocation: user.workLocation,
-            isActive: user.isActive,
-            status: user.isOnline ? 'Online' : 'Offline',
-            workedToday: (user.todayWorkedSeconds / 3600).toFixed(1) + 'h',
-            remaining: Math.max(0, 8 - (user.todayWorkedSeconds / 3600)).toFixed(1) + 'h',
-            productivity: Math.min(100, Math.round((user.todayWorkedSeconds / (8 * 3600)) * 100))
-        }));
+        const Session = require('../models/Session');
+        const activeSessions = await Session.find({ status: 'Active' });
+        const sessionMap = {};
+        activeSessions.forEach(s => { sessionMap[s.userId.toString()] = s.startTime; });
+
+        // Fetch active settings for shift target logic
+        const Settings = require('../models/Settings');
+        let settings = await Settings.findOne();
+        if (!settings) settings = { targetHours: 8 };
+        const targetSeconds = settings.targetHours * 3600;
+
+        // Fetch today's task work logs
+        const TaskWorkLog = require('../models/TaskWorkLog');
+        const todayStr = new Date().toISOString().split('T')[0];
+        const taskLogs = await TaskWorkLog.find({ date: todayStr });
+        const taskLogMap = {};
+        taskLogs.forEach(log => {
+            const empId = log.employeeId.toString();
+            if (!taskLogMap[empId]) taskLogMap[empId] = 0;
+            taskLogMap[empId] += log.timeSpentSeconds;
+        });
+
+        // Map data required for Admin live ticking
+        const workforce = users.map(user => {
+            const hasActiveSession = sessionMap[user._id.toString()] !== undefined;
+            return {
+                id: user._id,
+                userId: user._id.toString(),
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                department: user.department,
+                joiningDate: user.joiningDate,
+                reportingTo: user.reportingTo,
+                workLocation: user.workLocation,
+                isActive: user.isActive,
+                status: hasActiveSession ? 'Online' : 'Offline',
+                statusState: hasActiveSession ? 'Active' : 'Offline',
+                todayWorkedSeconds: user.todayWorkedSeconds,
+                todayTaskLoggedSeconds: taskLogMap[user._id.toString()] || 0,
+                todayActiveSeconds: user.todayActiveSeconds || 0,
+                todayIdleSeconds: user.todayIdleSeconds || 0,
+                todayAwaySeconds: user.todayAwaySeconds || 0,
+                targetSeconds: targetSeconds,
+                sessionStartTime: sessionMap[user._id.toString()] || null
+            };
+        });
 
         res.status(200).json({ workforce });
     } catch (error) {

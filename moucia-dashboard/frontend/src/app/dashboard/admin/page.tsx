@@ -54,9 +54,6 @@ interface WorkforceMember {
     name: string;
     role: string;
     status: string;
-    workedToday: string;
-    remaining: string;
-    productivity: number;
     userId?: string;
     email?: string;
     department?: string;
@@ -64,6 +61,17 @@ interface WorkforceMember {
     reportingTo?: any;
     workLocation?: string;
     isActive?: boolean;
+    todayWorkedSeconds: number;
+    todayTaskLoggedSeconds?: number;
+    todayActiveSeconds?: number;
+    todayIdleSeconds?: number;
+    todayAwaySeconds?: number;
+    statusState?: string;
+    targetSeconds: number;
+    sessionStartTime: string | null;
+    activeAdditionSeconds?: number;
+    idleAdditionSeconds?: number;
+    awayAdditionSeconds?: number;
 }
 
 interface AnalyticsData {
@@ -89,9 +97,13 @@ export default function AdminDashboard() {
     const [isLoading, setIsLoading] = useState(true);
     const [stats, setStats] = useState({
         totalEmployees: 0,
+        employeesPercent: 0,
         activeProjects: 0,
+        activeProjectsPercent: 0,
         tasksInProgress: 0,
-        completedTasks: 0
+        tasksInProgressPercent: 0,
+        completedTasks: 0,
+        completedTasksPercent: 0
     });
     const [workforce, setWorkforce] = useState<WorkforceMember[]>([]);
     const [analytics, setAnalytics] = useState<AnalyticsData>({
@@ -160,13 +172,25 @@ export default function AdminDashboard() {
     useEffect(() => {
         if (!socket) return;
 
-        const handleStatusUpdate = (data: { userId: string, isOnline: boolean, lastActive: string }) => {
+        const handleStatusUpdate = (data: { userId: string, isOnline: boolean, statusState: string, lastActive: string, todayWorkedSeconds: number, todayActiveSeconds: number, todayIdleSeconds: number, todayAwaySeconds: number, sessionStartTime: string | null }) => {
             console.log('[Socket] Received employeeStatusUpdated:', data);
             setWorkforce(prev => {
                 const updated = prev.map(emp => {
                     if (emp.id === data.userId || emp.userId === data.userId) {
-                        console.log(`[Socket] Mapping status for ${emp.name} to ${data.isOnline ? 'Online' : 'Offline'}`);
-                        return { ...emp, status: data.isOnline ? 'Online' : 'Offline' };
+                        return {
+                            ...emp,
+                            status: data.isOnline ? 'Online' : 'Offline',
+                            statusState: data.statusState,
+                            todayWorkedSeconds: data.todayWorkedSeconds,
+                            todayActiveSeconds: data.todayActiveSeconds,
+                            todayIdleSeconds: data.todayIdleSeconds,
+                            todayAwaySeconds: data.todayAwaySeconds,
+                            sessionStartTime: data.sessionStartTime,
+                            // Reset local additives because DB just synced the source of truth
+                            activeAdditionSeconds: 0,
+                            idleAdditionSeconds: 0,
+                            awayAdditionSeconds: 0,
+                        };
                     }
                     return emp;
                 });
@@ -183,6 +207,34 @@ export default function AdminDashboard() {
             socket.off('employeeStatusUpdated', handleStatusUpdate);
         };
     }, [socket]);
+
+    // Local Timer Ticking (1 second interval) dynamically switching buckets based on last known state
+    useEffect(() => {
+        const timerId = setInterval(() => {
+            setWorkforce(prev => prev.map(emp => {
+                if (emp.status === 'Online' && emp.sessionStartTime) {
+                    if (emp.statusState === 'Active') {
+                        return { ...emp, activeAdditionSeconds: (emp.activeAdditionSeconds || 0) + 1 };
+                    } else if (emp.statusState === 'Idle') {
+                        return { ...emp, idleAdditionSeconds: (emp.idleAdditionSeconds || 0) + 1 };
+                    } else if (emp.statusState === 'Away') {
+                        return { ...emp, awayAdditionSeconds: (emp.awayAdditionSeconds || 0) + 1 };
+                    }
+                }
+                return emp;
+            }));
+        }, 1000);
+
+        return () => clearInterval(timerId);
+    }, []);
+
+    // Format helper
+    const formatTime = (totalSeconds: number) => {
+        const hrs = Math.floor(totalSeconds / 3600);
+        const mins = Math.floor((totalSeconds % 3600) / 60);
+        const secs = totalSeconds % 60;
+        return `${hrs}h ${mins}m ${secs}s`;
+    };
 
     if (isLoading) {
         return (
@@ -215,10 +267,10 @@ export default function AdminDashboard() {
             {/* Metric Cards Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
-                    { label: 'Total Employees', value: stats.totalEmployees, growth: '+4.2%', icon: Users, up: true },
-                    { label: 'Active Projects', value: stats.activeProjects, growth: '+2', icon: Briefcase, up: true },
-                    { label: 'Tasks In Progress', value: stats.tasksInProgress, growth: '-12%', icon: Clock, up: false },
-                    { label: 'Completed Tasks', value: stats.completedTasks, growth: '+24', icon: CheckSquare, up: true },
+                    { label: 'Total Employees', value: stats.totalEmployees, growth: `${stats.employeesPercent}%`, icon: Users, up: stats.employeesPercent > 0, barWidth: stats.employeesPercent },
+                    { label: 'Active Projects', value: stats.activeProjects, growth: `${stats.activeProjectsPercent}%`, icon: Briefcase, up: stats.activeProjectsPercent > 0, barWidth: stats.activeProjectsPercent },
+                    { label: 'Tasks In Progress', value: stats.tasksInProgress, growth: `${stats.tasksInProgressPercent}%`, icon: Clock, up: stats.tasksInProgressPercent > 0, barWidth: stats.tasksInProgressPercent },
+                    { label: 'Completed Tasks', value: stats.completedTasks, growth: `${stats.completedTasksPercent}%`, icon: CheckSquare, up: stats.completedTasksPercent > 0, barWidth: stats.completedTasksPercent },
                 ].map((stat, i) => (
                     <Card key={i} className="border-slate-200 shadow-sm border-0 ring-1 ring-slate-200 overflow-hidden">
                         <CardContent className="p-6">
@@ -238,7 +290,7 @@ export default function AdminDashboard() {
                                 </div>
                             </div>
                             <div className="mt-4 w-full bg-slate-50 h-1 rounded-full overflow-hidden">
-                                <div className={`h-full ${i % 2 === 0 ? 'bg-blue-600' : 'bg-slate-400'} opacity-20`} style={{ width: '40%' }}></div>
+                                <div className={`h-full ${i % 2 === 0 ? 'bg-blue-600' : 'bg-slate-400'} opacity-20`} style={{ width: `${stat.barWidth}%` }}></div>
                             </div>
                         </CardContent>
                     </Card>
@@ -264,8 +316,9 @@ export default function AdminDashboard() {
                                     <tr className="bg-slate-50/50 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-widest">
                                         <th className="px-6 py-4">Employee</th>
                                         <th className="px-6 py-4 text-center">Status</th>
-                                        <th className="px-6 py-4">Worked Today</th>
-                                        <th className="px-6 py-4">Productivity</th>
+                                        <th className="px-6 py-4">Activity Matrix</th>
+                                        <th className="px-6 py-4 text-center">Tasks Logged</th>
+                                        <th className="px-6 py-4">Productivity %</th>
                                         <th className="px-6 py-4 text-right"></th>
                                     </tr>
                                 </thead>
@@ -289,17 +342,52 @@ export default function AdminDashboard() {
                                                     }`}>
                                                     <span className={`w-1 h-1 rounded-full mr-1.5 ${emp.status === 'Online' ? 'bg-green-600' : 'bg-slate-400'}`}></span>
                                                     {emp.status}
+                                                    {emp.status === 'Online' && emp.statusState && (
+                                                        <span className="ml-1 opacity-70">({emp.statusState})</span>
+                                                    )}
                                                 </Badge>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-center">
-                                                <span className="text-xs font-bold text-slate-600">{emp.workedToday}</span>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="flex items-center gap-4 text-xs">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-slate-400 text-[9px] uppercase font-bold tracking-wider">Active</span>
+                                                        <span className="font-bold text-slate-700">{formatTime((emp.todayActiveSeconds || 0) + (emp.activeAdditionSeconds || 0))}</span>
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-slate-400 text-[9px] uppercase font-bold tracking-wider">Idle</span>
+                                                        <span className="font-bold text-amber-600">{formatTime((emp.todayIdleSeconds || 0) + (emp.idleAdditionSeconds || 0))}</span>
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-slate-400 text-[9px] uppercase font-bold tracking-wider">Away</span>
+                                                        <span className="font-bold text-red-500">{formatTime((emp.todayAwaySeconds || 0) + (emp.awayAdditionSeconds || 0))}</span>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-center">
+                                                <div className="flex flex-col">
+                                                    <span className="font-bold text-blue-600">{formatTime(emp.todayTaskLoggedSeconds || 0)}</span>
+                                                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">vs {formatTime((emp.todayActiveSeconds || 0) + (emp.activeAdditionSeconds || 0))}</span>
+                                                </div>
                                             </td>
                                             <td className="px-6 py-4 min-w-[140px]">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                                                        <div className={`h-full ${emp.productivity > 80 ? 'bg-blue-600' : 'bg-slate-400'}`} style={{ width: `${emp.productivity}%` }}></div>
-                                                    </div>
-                                                    <span className="text-[10px] font-bold text-slate-500">{emp.productivity}%</span>
+                                                    {(() => {
+                                                        const active = (emp.todayActiveSeconds || 0) + (emp.activeAdditionSeconds || 0);
+                                                        const idle = (emp.todayIdleSeconds || 0) + (emp.idleAdditionSeconds || 0);
+                                                        const away = (emp.todayAwaySeconds || 0) + (emp.awayAdditionSeconds || 0);
+                                                        const total = active + idle + away;
+                                                        const score = total > 0 ? Math.round((active / total) * 100) : 0;
+                                                        return (
+                                                            <>
+                                                                <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                                                                    <div className={`h-full ${score >= 80 ? 'bg-green-500' : score >= 50 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${Math.min(100, score)}%` }}></div>
+                                                                </div>
+                                                                <span className={`text-[10px] font-bold ${score >= 80 ? 'text-green-600' : score >= 50 ? 'text-amber-600' : 'text-red-600'}`}>
+                                                                    {score}%
+                                                                </span>
+                                                            </>
+                                                        )
+                                                    })()}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 text-right">

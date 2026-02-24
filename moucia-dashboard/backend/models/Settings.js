@@ -5,11 +5,11 @@ const settingsSchema = new mongoose.Schema({
         type: String,
         default: 'Moucia'
     },
-    defaultShiftHours: {
+    targetHours: {
         type: Number,
         default: 8
     },
-    minimumSessionMinutes: {
+    minimumSessionBuffer: {
         type: Number,
         default: 120
     },

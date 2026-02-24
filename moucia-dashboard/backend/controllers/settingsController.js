@@ -29,6 +29,18 @@ exports.updateSettings = async (req, res) => {
         }
 
         res.status(200).json({ message: 'Settings updated successfully', settings });
+
+        // Emit real-time setting updates via socket
+        const { getIO } = require('../config/socket');
+        try {
+            const io = getIO();
+            if (io) {
+                io.emit('shiftSettingsUpdated', settings);
+            }
+        } catch (err) {
+            console.error('Socket emit error on settings update:', err);
+        }
+
     } catch (error) {
         console.error('Error updating settings:', error);
         res.status(500).json({ message: 'Server Error' });

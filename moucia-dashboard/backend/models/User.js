@@ -10,6 +10,10 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    profilePicture: {
+        type: String,
+        default: ''
+    },
     email: {
         type: String,
         required: true,
@@ -55,6 +59,18 @@ const userSchema = new mongoose.Schema({
         default: null
     },
     todayWorkedSeconds: {
+        type: Number,
+        default: 0
+    },
+    todayActiveSeconds: {
+        type: Number,
+        default: 0
+    },
+    todayIdleSeconds: {
+        type: Number,
+        default: 0
+    },
+    todayAwaySeconds: {
         type: Number,
         default: 0
     },

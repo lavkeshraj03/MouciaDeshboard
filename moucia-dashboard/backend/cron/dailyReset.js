@@ -3,6 +3,7 @@ const User = require('../models/User');
 const Attendance = require('../models/Attendance');
 const Session = require('../models/Session');
 const Settings = require('../models/Settings');
+const DailyProductivity = require('../models/DailyProductivity');
 
 const initCronJobs = () => {
     // Run at 03:00 AM every day
@@ -17,9 +18,9 @@ const initCronJobs = () => {
 
             // Fetch global settings
             let settings = await Settings.findOne();
-            if (!settings) settings = { defaultShiftHours: 8, minimumSessionMinutes: 120 };
+            if (!settings) settings = { targetHours: 8, minimumSessionBuffer: 120 };
 
-            const minSessionSeconds = settings.minimumSessionMinutes * 60;
+            const minSessionSeconds = settings.minimumSessionBuffer * 60;
 
             // 1. Close active sessions
             const openSessions = await Session.find({ status: { $in: ['Active', 'Paused'] } });
@@ -49,33 +50,38 @@ const initCronJobs = () => {
 
             // 2. Finalize attendance and reset counters
             const users = await User.find({});
-            const targetSeconds = settings.defaultShiftHours * 3600;
-            const halfDaySeconds = targetSeconds * 0.75; // 75% of target shift implies half-day
+            const { evaluateDailyAttendance } = require('../utils/attendanceEvaluation');
 
             for (let user of users) {
-                let status = 'Absent';
-                let completedShift = false;
+                // If they have accumulated time, evaluate and log it.
+                // Call evaluateDailyAttendance BEFORE resetting counters
+                await evaluateDailyAttendance(user._id, dateString);
 
-                // Logic based on global settings targets
-                if (user.forceAbsentToday) {
-                    status = 'Absent';
-                } else if (user.todayWorkedSeconds >= targetSeconds) {
-                    status = 'Present';
-                    completedShift = true;
-                } else if (user.todayWorkedSeconds >= halfDaySeconds) {
-                    status = 'Half Day';
+                // Archive Daily Productivity Details
+                const totalTracked = user.todayActiveSeconds + user.todayIdleSeconds + user.todayAwaySeconds;
+                let finalScore = 100;
+                if (totalTracked > 0) {
+                    finalScore = Math.round((user.todayActiveSeconds / totalTracked) * 100);
                 }
 
-                await Attendance.create({
-                    userId: user._id,
-                    date: dateString,
-                    totalWorkedSeconds: user.todayWorkedSeconds,
-                    status,
-                    completedShift
-                });
+                // Create the immutable daily productivity payload
+                if (user.todayWorkedSeconds > 0) {
+                    await DailyProductivity.create({
+                        employeeId: user._id,
+                        date: dateString,
+                        totalWorkedSeconds: user.todayWorkedSeconds,
+                        totalActiveSeconds: user.todayActiveSeconds,
+                        totalIdleSeconds: user.todayIdleSeconds,
+                        totalAwaySeconds: user.todayAwaySeconds,
+                        productivityScore: finalScore
+                    });
+                }
 
                 // Reset
                 user.todayWorkedSeconds = 0;
+                user.todayActiveSeconds = 0;
+                user.todayIdleSeconds = 0;
+                user.todayAwaySeconds = 0;
                 user.forceAbsentToday = false;
                 await user.save();
             }

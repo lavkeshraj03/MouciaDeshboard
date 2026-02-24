@@ -17,6 +17,7 @@ export interface User {
     reportingTo?: string;
     workLocation?: string;
     isActive?: boolean;
+    profilePicture?: string;
 }
 
 interface AuthContextType {

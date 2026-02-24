@@ -1,0 +1,196 @@
+
+> frontend@0.1.0 lint
+> eslint
+
+
+/Users/lavkeshrajput/Desktop/MIEM/moucia-dashboard/frontend/src/app/dashboard/admin/attendance/page.tsx
+  4:41  warning  'CardTitle' is defined but never used        @typescript-eslint/no-unused-vars
+  4:52  warning  'CardDescription' is defined but never used  @typescript-eslint/no-unused-vars
+  7:5   warning  'Calendar' is defined but never used         @typescript-eslint/no-unused-vars
+
+/Users/lavkeshrajput/Desktop/MIEM/moucia-dashboard/frontend/src/app/dashboard/admin/employees/page.tsx
+    8:5    warning  'Users' is defined but never used                                @typescript-eslint/no-unused-vars
+   30:19   error    Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+  212:99   error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  302:109  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+/Users/lavkeshrajput/Desktop/MIEM/moucia-dashboard/frontend/src/app/dashboard/admin/page.tsx
+   34:7    warning  'ATTENDANCE_DATA' is assigned a value but never used             @typescript-eslint/no-unused-vars
+   44:7    warning  'DONUT_DATA' is assigned a value but never used                  @typescript-eslint/no-unused-vars
+   50:7    warning  'COLORS' is assigned a value but never used                      @typescript-eslint/no-unused-vars
+   61:19   error    Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+  320:81   warning  'i' is defined but never used                                    @typescript-eslint/no-unused-vars
+  591:99   error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  681:109  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+/Users/lavkeshrajput/Desktop/MIEM/moucia-dashboard/frontend/src/app/dashboard/admin/projects/page.tsx
+   6:45  warning  'Users' is defined but never used         @typescript-eslint/no-unused-vars
+   6:75  warning  'Activity' is defined but never used      @typescript-eslint/no-unused-vars
+  57:68  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/lavkeshrajput/Desktop/MIEM/moucia-dashboard/frontend/src/app/dashboard/admin/reports/page.tsx
+    4:16   warning  'CardContent' is defined but never used                          @typescript-eslint/no-unused-vars
+    4:29   warning  'CardHeader' is defined but never used                           @typescript-eslint/no-unused-vars
+    4:41   warning  'CardTitle' is defined but never used                            @typescript-eslint/no-unused-vars
+    4:52   warning  'CardDescription' is defined but never used                      @typescript-eslint/no-unused-vars
+   10:5    warning  'User' is defined but never used                                 @typescript-eslint/no-unused-vars
+   11:5    warning  'ChevronDown' is defined but never used                          @typescript-eslint/no-unused-vars
+  117:102  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  117:124  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  123:102  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  123:149  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  129:102  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  129:124  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+/Users/lavkeshrajput/Desktop/MIEM/moucia-dashboard/frontend/src/app/dashboard/admin/settings/page.tsx
+   4:41  warning  'CardTitle' is defined but never used        @typescript-eslint/no-unused-vars
+   4:52  warning  'CardDescription' is defined but never used  @typescript-eslint/no-unused-vars
+  37:63  error    Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+
+/Users/lavkeshrajput/Desktop/MIEM/moucia-dashboard/frontend/src/app/dashboard/admin/tasks/page.tsx
+   8:5  warning  'CheckSquare' is defined but never used  @typescript-eslint/no-unused-vars
+   9:5  warning  'Filter' is defined but never used       @typescript-eslint/no-unused-vars
+  10:5  warning  'Search' is defined but never used       @typescript-eslint/no-unused-vars
+  12:5  warning  'Clock' is defined but never used        @typescript-eslint/no-unused-vars
+  14:5  warning  'User' is defined but never used         @typescript-eslint/no-unused-vars
+  17:5  warning  'ChevronDown' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/lavkeshrajput/Desktop/MIEM/moucia-dashboard/frontend/src/app/dashboard/employee/attendance/page.tsx
+   7:5   warning  'Calendar' is defined but never used            @typescript-eslint/no-unused-vars
+  10:5   warning  'AlertCircle' is defined but never used         @typescript-eslint/no-unused-vars
+  13:5   warning  'Search' is defined but never used              @typescript-eslint/no-unused-vars
+  31:12  warning  'isLoading' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  37:67  error    Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+
+/Users/lavkeshrajput/Desktop/MIEM/moucia-dashboard/frontend/src/app/dashboard/employee/documents/page.tsx
+  3:52  warning  'CardDescription' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/lavkeshrajput/Desktop/MIEM/moucia-dashboard/frontend/src/app/dashboard/employee/notifications/page.tsx
+    4:29  warning  'CardHeader' is defined but never used                           @typescript-eslint/no-unused-vars
+    4:41  warning  'CardTitle' is defined but never used                            @typescript-eslint/no-unused-vars
+    4:52  warning  'CardDescription' is defined but never used                      @typescript-eslint/no-unused-vars
+    5:10  warning  'Badge' is defined but never used                                @typescript-eslint/no-unused-vars
+    7:5   warning  'Bell' is defined but never used                                 @typescript-eslint/no-unused-vars
+   30:13  warning  'user' is assigned a value but never used                        @typescript-eslint/no-unused-vars
+  100:98  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+/Users/lavkeshrajput/Desktop/MIEM/moucia-dashboard/frontend/src/app/dashboard/employee/page.tsx
+    9:5    warning  'Play' is defined but never used                                 @typescript-eslint/no-unused-vars
+   10:5    warning  'Pause' is defined but never used                                @typescript-eslint/no-unused-vars
+   13:5    warning  'CalendarDays' is defined but never used                         @typescript-eslint/no-unused-vars
+   16:5    warning  'CheckSquare' is defined but never used                          @typescript-eslint/no-unused-vars
+   20:5    warning  'ChevronDown' is defined but never used                          @typescript-eslint/no-unused-vars
+   44:62   error    Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+   48:12   warning  'minSessionSeconds' is assigned a value but never used           @typescript-eslint/no-unused-vars
+   49:58   error    Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+  105:45   error    Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+  177:11   warning  'handlePause' is assigned a value but never used                 @typescript-eslint/no-unused-vars
+  231:92   error    Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+  388:111  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  582:123  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+/Users/lavkeshrajput/Desktop/MIEM/moucia-dashboard/frontend/src/app/dashboard/employee/profile/page.tsx
+   5:52  warning  'CardDescription' is defined but never used  @typescript-eslint/no-unused-vars
+  12:5   warning  'Key' is defined but never used              @typescript-eslint/no-unused-vars
+  19:5   warning  'AlertCircle' is defined but never used      @typescript-eslint/no-unused-vars
+
+/Users/lavkeshrajput/Desktop/MIEM/moucia-dashboard/frontend/src/app/dashboard/employee/reports/page.tsx
+    6:10   warning  'Badge' is defined but never used                                @typescript-eslint/no-unused-vars
+    9:5    warning  'Calendar' is defined but never used                             @typescript-eslint/no-unused-vars
+   10:5    warning  'ChevronRight' is defined but never used                         @typescript-eslint/no-unused-vars
+  113:147  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+/Users/lavkeshrajput/Desktop/MIEM/moucia-dashboard/frontend/src/app/dashboard/employee/tasks/page.tsx
+   4:29  warning  'CardHeader' is defined but never used       @typescript-eslint/no-unused-vars
+   4:41  warning  'CardTitle' is defined but never used        @typescript-eslint/no-unused-vars
+   4:52  warning  'CardDescription' is defined but never used  @typescript-eslint/no-unused-vars
+   5:10  warning  'Button' is defined but never used           @typescript-eslint/no-unused-vars
+   9:5   warning  'Filter' is defined but never used           @typescript-eslint/no-unused-vars
+  14:5   warning  'ChevronDown' is defined but never used      @typescript-eslint/no-unused-vars
+  15:5   warning  'Plus' is defined but never used             @typescript-eslint/no-unused-vars
+  18:10  warning  'useAuth' is defined but never used          @typescript-eslint/no-unused-vars
+  52:92  error    Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+
+/Users/lavkeshrajput/Desktop/MIEM/moucia-dashboard/frontend/src/app/dashboard/employee/timer/page.tsx
+   4:52  warning  'CardDescription' is defined but never used  @typescript-eslint/no-unused-vars
+  11:5   warning  'Clock' is defined but never used            @typescript-eslint/no-unused-vars
+  14:5   warning  'CheckCircle2' is defined but never used     @typescript-eslint/no-unused-vars
+  16:5   warning  'ChevronRight' is defined but never used     @typescript-eslint/no-unused-vars
+
+/Users/lavkeshrajput/Desktop/MIEM/moucia-dashboard/frontend/src/app/login/page.tsx
+   5:8   warning  'api' is defined but never used           @typescript-eslint/no-unused-vars
+  28:23  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/lavkeshrajput/Desktop/MIEM/moucia-dashboard/frontend/src/components/layout/Header.tsx
+   4:24  warning  'Settings' is defined but never used      @typescript-eslint/no-unused-vars
+   4:46  warning  'Menu' is defined but never used          @typescript-eslint/no-unused-vars
+   5:10  warning  'Input' is defined but never used         @typescript-eslint/no-unused-vars
+  19:70  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/lavkeshrajput/Desktop/MIEM/moucia-dashboard/frontend/src/components/layout/Sidebar.tsx
+  33:70  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/lavkeshrajput/Desktop/MIEM/moucia-dashboard/frontend/src/context/AuthContext.tsx
+   6:8   warning  'api' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       @typescript-eslint/no-unused-vars
+  28:13  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              @typescript-eslint/no-explicit-any
+  47:17  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/lavkeshrajput/Desktop/MIEM/moucia-dashboard/frontend/src/context/AuthContext.tsx:47:17
+  45 |         if (storedToken && storedUser) {
+  46 |             try {
+> 47 |                 setToken(storedToken);
+     |                 ^^^^^^^^ Avoid calling setState() directly within an effect
+  48 |                 setUser(JSON.parse(storedUser));
+  49 |             } catch (e) {
+  50 |                 console.error('Failed to parse user from local storage');  react-hooks/set-state-in-effect
+  49:22  warning  'e' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unused-vars
+  58:51  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              @typescript-eslint/no-explicit-any
+  83:8   warning  React Hook useEffect has a missing dependency: 'router'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             react-hooks/exhaustive-deps
+
+/Users/lavkeshrajput/Desktop/MIEM/moucia-dashboard/frontend/src/hooks/useProductivityTracker.ts
+  62:8  warning  React Hook useEffect has a missing dependency: 'handleUserActivity'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           react-hooks/exhaustive-deps
+  75:9  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/lavkeshrajput/Desktop/MIEM/moucia-dashboard/frontend/src/hooks/useProductivityTracker.ts:75:9
+  73 |
+  74 |         // Initial setup
+> 75 |         handleUserActivity();
+     |         ^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  76 |
+  77 |         return () => {
+  78 |             events.forEach(evt => document.removeEventListener(evt, handleUserActivity));  react-hooks/set-state-in-effect
+  81:8  warning  React Hook useEffect has a missing dependency: 'handleUserActivity'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           react-hooks/exhaustive-deps
+
+/Users/lavkeshrajput/Desktop/MIEM/moucia-dashboard/frontend/src/hooks/useSocket.ts
+   5:33  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     @typescript-eslint/no-explicit-any
+  12:13  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/lavkeshrajput/Desktop/MIEM/moucia-dashboard/frontend/src/hooks/useSocket.ts:12:13
+  10 |             // Initialize the single socket instance with our JWT
+  11 |             const socketInstance = initSocket(token);
+> 12 |             setSocket(socketInstance);
+     |             ^^^^^^^^^ Avoid calling setState() directly within an effect
+  13 |         } else {
+  14 |             // Unmount/logout cleanup
+  15 |             disconnectSocket();  react-hooks/set-state-in-effect
+
+✖ 102 problems (33 errors, 69 warnings)
+

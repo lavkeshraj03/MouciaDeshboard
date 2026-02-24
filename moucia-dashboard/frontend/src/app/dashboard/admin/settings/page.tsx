@@ -8,8 +8,8 @@ import api from '@/services/api';
 
 interface SystemSettings {
     companyName: string;
-    defaultShiftHours: number;
-    minimumSessionMinutes: number;
+    targetHours: number;
+    minimumSessionBuffer: number;
     allowRemoteWork: boolean;
     requireLocationTracking: boolean;
     weeklyOffDays: string[];
@@ -130,14 +130,14 @@ export default function AdminSettings() {
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-slate-600 uppercase tracking-wider flex justify-between">
                                 Default Target Hours
-                                <Badge variant="outline" className="text-[10px] bg-slate-50">{settings.defaultShiftHours} hrs</Badge>
+                                <Badge variant="outline" className="text-[10px] bg-slate-50">{settings.targetHours} hrs</Badge>
                             </label>
                             <input
                                 type="number"
                                 min={1}
                                 max={24}
-                                value={settings.defaultShiftHours}
-                                onChange={(e) => handleChange('defaultShiftHours', parseInt(e.target.value) || 8)}
+                                value={settings.targetHours}
+                                onChange={(e) => handleChange('targetHours', parseInt(e.target.value) || 8)}
                                 className="w-full text-sm font-medium border border-slate-200 rounded-lg p-3 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
                             />
                         </div>
@@ -145,13 +145,13 @@ export default function AdminSettings() {
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-slate-600 uppercase tracking-wider flex justify-between">
                                 Minimum Session Buffer
-                                <Badge variant="outline" className="text-[10px] bg-slate-50">{settings.minimumSessionMinutes} mins</Badge>
+                                <Badge variant="outline" className="text-[10px] bg-slate-50">{settings.minimumSessionBuffer} mins</Badge>
                             </label>
                             <input
                                 type="number"
                                 min={1}
-                                value={settings.minimumSessionMinutes}
-                                onChange={(e) => handleChange('minimumSessionMinutes', parseInt(e.target.value) || 120)}
+                                value={settings.minimumSessionBuffer}
+                                onChange={(e) => handleChange('minimumSessionBuffer', parseInt(e.target.value) || 120)}
                                 className="w-full text-sm font-medium border border-slate-200 rounded-lg p-3 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all"
                             />
                             <p className="text-xs text-slate-400">Minimum continuous tracking block required to log attendance.</p>

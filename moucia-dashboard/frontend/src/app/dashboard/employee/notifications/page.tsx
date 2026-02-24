@@ -50,6 +50,7 @@ export default function NotificationsPage() {
         try {
             await api.put(`/notifications/${id}/read`);
             setNotifications((prev: Notification[]) => prev.map((n: Notification) => n._id === id ? { ...n, isRead: true } : n));
+            window.dispatchEvent(new Event('notificationsUpdated'));
         } catch (error) {
             console.error('Failed to mark notification as read', error);
         }
@@ -59,6 +60,7 @@ export default function NotificationsPage() {
         try {
             await api.put('/notifications/mark-all-read');
             setNotifications((prev: Notification[]) => prev.map((n: Notification) => ({ ...n, isRead: true })));
+            window.dispatchEvent(new Event('notificationsUpdated'));
         } catch (error) {
             console.error('Failed to mark all notifications as read', error);
         }
@@ -68,6 +70,7 @@ export default function NotificationsPage() {
         try {
             await api.delete(`/notifications/${id}`);
             setNotifications((prev: Notification[]) => prev.filter((n: Notification) => n._id !== id));
+            window.dispatchEvent(new Event('notificationsUpdated'));
         } catch (error) {
             console.error('Failed to delete notification', error);
         }
@@ -96,7 +99,7 @@ export default function NotificationsPage() {
                 ) : notifications.length === 0 ? (
                     <div className="text-center py-10 text-slate-400">No notifications found. You're all caught up!</div>
                 ) : notifications.map((note) => (
-                    <Card key={note._id} className={`border-slate-200 shadow-sm transition-all hover:border-slate-300 group cursor-pointer ${!note.isRead ? 'border-l-4 border-l-blue-600 bg-white' : 'bg-slate-50/50 opacity-90'}`}>
+                    <Card key={note._id} onClick={() => { if (!note.isRead) handleMarkAsRead(note._id); }} className={`border-slate-200 shadow-sm transition-all hover:border-slate-300 group cursor-pointer ${!note.isRead ? 'border-l-4 border-l-blue-600 bg-white' : 'bg-slate-50/50 opacity-90'}`}>
                         <CardContent className="p-5 flex items-start gap-4">
                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${note.type === 'Task' ? 'bg-blue-100 text-blue-600' :
                                 note.type === 'System' ? 'bg-indigo-100 text-indigo-600' :

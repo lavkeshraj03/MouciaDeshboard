@@ -22,6 +22,8 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import api from '@/services/api';
+import io from 'socket.io-client';
+import { useProductivityTracker } from '@/hooks/useProductivityTracker';
 
 interface Task {
     _id: string;
@@ -44,8 +46,35 @@ export default function EmployeeDashboard() {
     const [isSubmittingReport, setIsSubmittingReport] = useState(false);
     const [targetShiftSeconds, setTargetShiftSeconds] = useState(28800); // 8 hours default
     const [minSessionSeconds, setMinSessionSeconds] = useState(7200); // 120 mins default
+    const [socketInstance, setSocketInstance] = useState<any>(null);
+    const [hasAcknowledgedTracking, setHasAcknowledgedTracking] = useState(false);
+
+    // Task Logging State
+    const [loggingTask, setLoggingTask] = useState<Task | null>(null);
+    const [logMinutes, setLogMinutes] = useState(30);
+    const [logDesc, setLogDesc] = useState('');
+    const [isLogging, setIsLogging] = useState(false);
 
     const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Productivity Tracker Hook
+    const activityState = useProductivityTracker(
+        sessionState === 'Active',
+        socketInstance
+    );
+
+    // Productivity Notice Persistance
+    useEffect(() => {
+        const ack = localStorage.getItem('productivityNoticeAcknowledged');
+        if (ack === 'true') {
+            setHasAcknowledgedTracking(true);
+        }
+    }, []);
+
+    const handleAcknowledge = () => {
+        localStorage.setItem('productivityNoticeAcknowledged', 'true');
+        setHasAcknowledgedTracking(true);
+    };
 
     // Fetch initial session and tasks
     useEffect(() => {
@@ -67,8 +96,8 @@ export default function EmployeeDashboard() {
                 // Fetch Global Settings
                 const settingsRes = await api.get('/settings');
                 if (settingsRes.data.settings) {
-                    setTargetShiftSeconds((settingsRes.data.settings.defaultShiftHours || 8) * 3600);
-                    setMinSessionSeconds((settingsRes.data.settings.minimumSessionMinutes || 120) * 60);
+                    setTargetShiftSeconds((settingsRes.data.settings.targetHours || 8) * 3600);
+                    setMinSessionSeconds((settingsRes.data.settings.minimumSessionBuffer || 120) * 60);
                 }
 
                 // Fetch Tasks
@@ -107,6 +136,23 @@ export default function EmployeeDashboard() {
         };
 
         initDashboard();
+
+        // Connect Socket
+        const socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000');
+        setSocketInstance(socket);
+
+        socket.on('shiftSettingsUpdated', (newSettings) => {
+            if (newSettings && newSettings.targetHours) {
+                setTargetShiftSeconds(newSettings.targetHours * 3600);
+            }
+            if (newSettings && newSettings.minimumSessionBuffer) {
+                setMinSessionSeconds(newSettings.minimumSessionBuffer * 60);
+            }
+        });
+
+        return () => {
+            socket.disconnect();
+        };
     }, []);
 
     // Live Timer Engine
@@ -151,51 +197,38 @@ export default function EmployeeDashboard() {
     };
 
     const handlePauseAttempt = async () => {
-        if (sessionStartTime) {
-            const currentSessionDuration = Math.floor((Date.now() - sessionStartTime) / 1000);
-            if (currentSessionDuration < minSessionSeconds) {
-                const remainingMins = Math.ceil((minSessionSeconds - currentSessionDuration) / 60);
-                const confirmForce = window.confirm(`Notice: You have ${remainingMins} minutes left in your minimum session. Forcing offline now will permanently mark you as ABSENT for the whole day (though your future hours will still count). Do you want to Force Offline?`);
-                if (!confirmForce) return;
-
-                // If confirmed, pause and tell backend to force absent
-                try {
-                    await api.post('/session/pause', { forceAbsent: true });
-                    setSessionState('Paused');
-                } catch (err) {
-                    console.error(err);
-                }
-                return;
-            }
-        }
-        handlePause();
-    };
-
-    const handleEndAttempt = () => {
-        let isForced = false;
-        if (workedSeconds < targetShiftSeconds) {
-            const confirmForce = window.confirm(`Notice: You have not completed your full ${Math.round(targetShiftSeconds / 3600)}-hour shift. Forcing End Shift will permanently mark you as ABSENT for today. Do you want to Force End Shift?`);
-            if (!confirmForce) return;
-            isForced = true;
-        } else {
-            confetti({
-                particleCount: 150,
-                spread: 70,
-                origin: { y: 0.6 }
-            });
-            setTimeout(() => {
-                alert('Congratulations! You have successfully completed your shift for today.');
-            }, 500);
-        }
-        handleEnd(isForced);
-    };
-
-    const handleEnd = async (isForced = false) => {
         try {
-            const response = await api.post('/session/end', { forceAbsent: isForced });
-            if (response.data.warning) {
-                alert(response.data.warning);
-                return;
+            const res = await api.post('/session/pause');
+            alert(res.data.message);
+            if (res.data.session.status === 'Ended') {
+                setSessionState('Idle');
+                setWorkedSeconds(res.data.session.duration);
+                setBaseWorkedSeconds(res.data.session.duration);
+            } else {
+                setSessionState('Paused');
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const handleEndAttempt = async () => {
+        const confirmForce = window.confirm('Are you sure you want to end your shift? Make sure you have completed your required hours.');
+        if (!confirmForce) return;
+
+        try {
+            const response = await api.post('/session/end');
+            if (workedSeconds >= targetShiftSeconds) {
+                confetti({
+                    particleCount: 150,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+                setTimeout(() => {
+                    alert(response.data.message);
+                }, 500);
+            } else {
+                alert(response.data.message);
             }
             setSessionState('Idle');
             setWorkedSeconds(response.data.totalWorkedSeconds);
@@ -211,6 +244,29 @@ export default function EmployeeDashboard() {
             setTasks(prev => prev.map(t => t._id === taskId ? { ...t, status: newStatus as any } : t));
         } catch (err) {
             console.error('Failed to update task status:', err);
+        }
+    };
+
+    const handleLogTime = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!loggingTask) return;
+        setIsLogging(true);
+        try {
+            await api.post('/task/log', {
+                taskId: loggingTask._id,
+                timeSpentSeconds: logMinutes * 60,
+                description: logDesc,
+                completed: loggingTask.status === 'Completed'
+            });
+            alert('Time logged successfully!');
+            setLoggingTask(null);
+            setLogMinutes(30);
+            setLogDesc('');
+        } catch (err) {
+            console.error('Failed to log time:', err);
+            alert('Failed to log time.');
+        } finally {
+            setIsLogging(false);
         }
     };
 
@@ -259,6 +315,33 @@ export default function EmployeeDashboard() {
         }
     };
 
+    if (!hasAcknowledgedTracking && sessionState === 'Idle') {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] max-w-2xl mx-auto text-center space-y-6">
+                <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Clock className="w-8 h-8" />
+                </div>
+                <h2 className="text-2xl font-bold tracking-tight text-slate-900">Workplace Productivity Notice</h2>
+                <div className="bg-slate-50 border border-slate-200 p-6 rounded-xl text-left space-y-4">
+                    <p className="text-slate-700 text-sm leading-relaxed">
+                        To maintain a transparent and balanced work environment, Moucia utilizes a <strong>Lightweight Productivity Monitor</strong> during your active work sessions.
+                    </p>
+                    <ul className="text-sm text-slate-600 space-y-2 list-disc pl-5">
+                        <li><strong>Activity Tracking:</strong> We measure active time vs idle time based on general interactions (mouse, keyboard).</li>
+                        <li><strong>Focus Tracking:</strong> Time spent focused away from the dashboard tab is logged conditionally.</li>
+                        <li><strong>No Spyware:</strong> We <strong>DO NOT</strong> track personal apps, external software, or browser history. Tracking completely stops when your shift ends.</li>
+                    </ul>
+                </div>
+                <Button
+                    onClick={handleAcknowledge}
+                    className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold h-12 px-8"
+                >
+                    Acknowledge & Continue to Dashboard
+                </Button>
+            </div>
+        );
+    }
+
     return (
         <div className="space-y-6 max-w-[1600px] mx-auto pb-10">
             {/* Header Section */}
@@ -297,13 +380,13 @@ export default function EmployeeDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card className="border-slate-200 shadow-sm overflow-hidden border-l-4 border-l-blue-600">
                     <CardContent className="p-5 flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${activityState === 'Active' && sessionState === 'Active' ? 'bg-green-50 text-green-600' : activityState === 'Away' ? 'bg-amber-50 text-amber-600' : 'bg-slate-100 text-slate-600'}`}>
                             <div className={`w-2 h-2 rounded-full ${sessionState === 'Active' ? 'bg-green-500 animate-pulse' : 'bg-slate-400'}`} />
                         </div>
                         <div>
                             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</p>
                             <h4 className="text-lg font-bold text-slate-900 mt-0.5">
-                                {sessionState === 'Active' ? 'Online' : sessionState === 'Paused' ? 'Away' : 'Offline'}
+                                {sessionState === 'Active' ? activityState : sessionState === 'Paused' ? 'Paused' : 'Offline'}
                             </h4>
                         </div>
                     </CardContent>
@@ -386,15 +469,25 @@ export default function EmployeeDashboard() {
                                                     </Badge>
                                                 </td>
                                                 <td className="px-6 py-4 text-center">
-                                                    <select
-                                                        value={task.status}
-                                                        onChange={(e) => handleStatusChange(task._id, e.target.value)}
-                                                        className={`font-semibold text-xs border-0 bg-transparent focus:ring-0 cursor-pointer ${getStatusColor(task.status)}`}
-                                                    >
-                                                        <option value="Pending">Pending</option>
-                                                        <option value="In Progress">In Progress</option>
-                                                        <option value="Completed">Completed</option>
-                                                    </select>
+                                                    <div className="flex items-center justify-center gap-2">
+                                                        <select
+                                                            value={task.status}
+                                                            onChange={(e) => handleStatusChange(task._id, e.target.value)}
+                                                            className={`font-semibold text-xs border-0 bg-transparent focus:ring-0 cursor-pointer ${getStatusColor(task.status)}`}
+                                                        >
+                                                            <option value="Pending">Pending</option>
+                                                            <option value="In Progress">In Progress</option>
+                                                            <option value="Completed">Completed</option>
+                                                        </select>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            className="h-6 px-2 text-[10px] text-blue-600 hover:bg-blue-50"
+                                                            onClick={() => setLoggingTask(task)}
+                                                        >
+                                                            Log Time
+                                                        </Button>
+                                                    </div>
                                                 </td>
                                                 <td className="px-6 py-4 text-right text-slate-500 font-medium">
                                                     {new Date(task.dueDate).toLocaleDateString([], { month: 'short', day: 'numeric' })}
@@ -466,7 +559,6 @@ export default function EmployeeDashboard() {
                             </div>
                         </CardContent>
                     </Card>
-
                     {/* 5. Daily Report Section */}
                     <Card className="border-slate-200 shadow-sm bg-white">
                         <CardHeader className="py-4 border-b border-slate-100 flex flex-row items-center justify-between">
@@ -524,6 +616,59 @@ export default function EmployeeDashboard() {
                     </Card>
                 </div>
             </div>
-        </div>
+
+            {/* Task Logging Modal */}
+            {
+                loggingTask && (
+                    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                        <Card className="w-full max-w-md shadow-xl border-slate-200">
+                            <CardHeader className="border-b border-slate-100 flex flex-row items-center justify-between pb-4">
+                                <div>
+                                    <CardTitle className="text-lg font-bold text-slate-800">Log Task Time</CardTitle>
+                                    <CardDescription className="text-xs">{loggingTask.title}</CardDescription>
+                                </div>
+                                <button onClick={() => setLoggingTask(null)} className="text-slate-400 hover:text-slate-600 font-bold">&#10005;</button>
+                            </CardHeader>
+                            <CardContent className="p-6">
+                                <form onSubmit={handleLogTime} className="space-y-4">
+                                    <div className="space-y-1.5">
+                                        <label className="text-[11px] font-bold text-slate-500 uppercase">Time Spent (Minutes)</label>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            value={logMinutes}
+                                            onChange={(e) => setLogMinutes(Number(e.target.value))}
+                                            className="w-full text-sm border border-slate-200 rounded p-2 focus:ring-1 focus:ring-blue-500 outline-none"
+                                            required
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[11px] font-bold text-slate-500 uppercase">Description / Notes</label>
+                                        <textarea
+                                            value={logDesc}
+                                            onChange={(e) => setLogDesc(e.target.value)}
+                                            className="w-full text-sm border border-slate-200 rounded p-2 focus:ring-1 focus:ring-blue-500 outline-none min-h-[80px]"
+                                            placeholder="What did you work on specifically?"
+                                            required
+                                        />
+                                    </div>
+                                    <div className="pt-4 flex items-center justify-end gap-3">
+                                        <button type="button" onClick={() => setLoggingTask(null)} className="px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-700">Cancel</button>
+                                        <button
+                                            type="submit"
+                                            disabled={isLogging}
+                                            className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded shadow-sm hover:bg-blue-700 flex items-center"
+                                        >
+                                            {isLogging ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : null}
+                                            Save Log
+                                        </button>
+                                    </div>
+                                </form>
+                            </CardContent>
+                        </Card>
+                    </div>
+                )
+            }
+        </div >
     );
 }

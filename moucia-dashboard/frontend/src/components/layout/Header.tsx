@@ -26,7 +26,12 @@ export default function Header() {
         fetchUnreadCount();
 
         const interval = setInterval(fetchUnreadCount, 60000);
-        return () => clearInterval(interval);
+        window.addEventListener('notificationsUpdated', fetchUnreadCount);
+
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('notificationsUpdated', fetchUnreadCount);
+        };
     }, [user]);
 
     return (

@@ -20,10 +20,12 @@ import {
 } from 'lucide-react';
 import { useAuth, User as GlobalUser } from '@/context/AuthContext';
 import api from '@/services/api';
+import { Loader2 } from 'lucide-react';
 
 export default function ProfilePage() {
-    const { user: authUser } = useAuth();
+    const { user: authUser, login } = useAuth();
     const [user, setUser] = useState<GlobalUser | null>(authUser);
+    const [isUploading, setIsUploading] = useState(false);
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -43,8 +45,17 @@ export default function ProfilePage() {
     return (
         <div className="space-y-6 max-w-4xl mx-auto pb-10">
             <div className="flex flex-col md:flex-row items-center gap-6 pb-6">
-                <div className="w-24 h-24 bg-slate-800 rounded-full flex items-center justify-center text-white text-3xl font-bold border-4 border-white shadow-xl ring-1 ring-slate-200">
-                    {user?.name?.charAt(0) || authUser?.name?.charAt(0) || 'U'}
+                <div className="w-24 h-24 bg-slate-800 rounded-full flex items-center justify-center text-white text-3xl font-bold border-4 border-white shadow-xl ring-1 ring-slate-200 overflow-hidden relative">
+                    {user?.profilePicture ? (
+                        <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                        user?.name?.charAt(0) || authUser?.name?.charAt(0) || 'U'
+                    )}
+                    {isUploading && (
+                        <div className="absolute inset-0 bg-slate-900/50 flex items-center justify-center">
+                            <Loader2 className="w-8 h-8 text-white animate-spin" />
+                        </div>
+                    )}
                 </div>
                 <div className="text-center md:text-left space-y-1">
                     <h2 className="text-2xl font-bold text-slate-900 tracking-tight">{user?.name}</h2>
@@ -66,9 +77,30 @@ export default function ProfilePage() {
                                 type="file"
                                 className="hidden"
                                 accept=".jpg,.jpeg,.png"
-                                onChange={(e) => {
+                                onChange={async (e) => {
                                     if (e.target.files && e.target.files.length > 0) {
-                                        alert("Photo update functionality would process here.");
+                                        const file = e.target.files[0];
+                                        setIsUploading(true);
+                                        try {
+                                            const reader = new FileReader();
+                                            reader.readAsDataURL(file);
+                                            reader.onloadend = async () => {
+                                                const base64data = reader.result;
+                                                const res = await api.put('/auth/profile-image', { profilePicture: base64data });
+                                                if (res.data.user) {
+                                                    setUser(res.data.user);
+                                                    if (authUser) {
+                                                        const token = localStorage.getItem('token');
+                                                        if (token) login(token, res.data.user);
+                                                    }
+                                                }
+                                                setIsUploading(false);
+                                            };
+                                        } catch (error) {
+                                            console.error('Upload Error:', error);
+                                            alert('Failed to update profile image.');
+                                            setIsUploading(false);
+                                        }
                                     }
                                 }}
                             />

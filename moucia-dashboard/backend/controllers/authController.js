@@ -42,7 +42,8 @@ exports.loginUser = async (req, res) => {
                 workLocation: user.workLocation,
                 isActive: user.isActive,
                 isOnline: user.isOnline,
-                todayWorkedSeconds: user.todayWorkedSeconds
+                todayWorkedSeconds: user.todayWorkedSeconds,
+                profilePicture: user.profilePicture || ''
             }
         });
 
@@ -99,6 +100,45 @@ exports.getMe = async (req, res) => {
         });
     } catch (error) {
         console.error('Get Me Error:', error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// Update Profile Image
+exports.updateProfileImage = async (req, res) => {
+    try {
+        const { profilePicture } = req.body;
+
+        if (!profilePicture) {
+            return res.status(400).json({ message: 'No image provided' });
+        }
+
+        const user = await User.findByIdAndUpdate(
+            req.user._id,
+            { profilePicture },
+            { new: true }
+        ).select('-password').populate('reportingTo', 'name');
+
+        res.status(200).json({
+            message: 'Profile image updated successfully',
+            user: {
+                id: user._id,
+                userId: user.userId,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                department: user.department,
+                joiningDate: user.joiningDate,
+                reportingTo: user.reportingTo ? user.reportingTo.name : 'Admin Manager',
+                workLocation: user.workLocation,
+                isActive: user.isActive,
+                isOnline: user.isOnline,
+                todayWorkedSeconds: user.todayWorkedSeconds,
+                profilePicture: user.profilePicture
+            }
+        });
+    } catch (error) {
+        console.error('Profile Image Update Error:', error);
         res.status(500).json({ message: 'Server Error' });
     }
 };

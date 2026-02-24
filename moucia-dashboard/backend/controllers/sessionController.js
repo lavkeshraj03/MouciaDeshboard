@@ -26,7 +26,9 @@ exports.startSession = async (req, res) => {
                         io.emit('employeeStatusUpdated', {
                             userId: resumedUser._id.toString(),
                             isOnline: true,
-                            lastActive: resumedUser.lastActive
+                            lastActive: resumedUser.lastActive,
+                            todayWorkedSeconds: resumedUser.todayWorkedSeconds,
+                            sessionStartTime: session.startTime
                         });
                     }
                 } catch (err) {
@@ -53,7 +55,13 @@ exports.startSession = async (req, res) => {
                 io.emit('employeeStatusUpdated', {
                     userId: user._id.toString(),
                     isOnline: true,
-                    lastActive: user.lastActive
+                    statusState: 'Active',
+                    lastActive: user.lastActive,
+                    todayWorkedSeconds: user.todayWorkedSeconds,
+                    todayActiveSeconds: user.todayActiveSeconds || 0,
+                    todayIdleSeconds: user.todayIdleSeconds || 0,
+                    todayAwaySeconds: user.todayAwaySeconds || 0,
+                    sessionStartTime: session.startTime
                 });
                 console.log(`[Socket] Emitted employeeStatusUpdated for User: ${user._id} (Online)`);
             }
@@ -79,33 +87,79 @@ exports.pauseSession = async (req, res) => {
         const now = Date.now();
         const durationSinceStart = Math.floor((now - session.startTime.getTime()) / 1000);
 
-        session.duration += durationSinceStart;
-        session.startTime = now; // reset start time to now in case it resumes
-        session.status = 'Paused';
-        await session.save();
+        let settings = await Settings.findOne();
+        if (!settings) settings = { targetHours: 8, minimumSessionBuffer: 120 };
+        const minSessionSeconds = settings.minimumSessionBuffer * 60;
+        const targetSeconds = settings.targetHours * 3600;
 
-        // Update User's todayWorkedSeconds and isOnline
+        session.duration += durationSinceStart;
         const user = await User.findById(userId);
-        user.todayWorkedSeconds += durationSinceStart;
-        user.isOnline = false;
-        user.lastActive = new Date();
-        if (req.body.forceAbsent) {
-            user.forceAbsentToday = true;
-        }
-        await user.save();
+        const newTotalWorked = user.todayWorkedSeconds + durationSinceStart;
 
         const { getIO } = require('../config/socket');
-        try {
-            getIO().emit('employeeStatusUpdated', {
-                userId: user._id.toString(),
-                isOnline: false,
-                lastActive: user.lastActive
-            });
-        } catch (err) {
-            console.error('Socket emit error:', err);
+        const emitOffline = () => {
+            try {
+                getIO().emit('employeeStatusUpdated', {
+                    userId: user._id.toString(),
+                    isOnline: false,
+                    statusState: 'Offline',
+                    lastActive: user.lastActive,
+                    todayWorkedSeconds: user.todayWorkedSeconds,
+                    todayActiveSeconds: user.todayActiveSeconds || 0,
+                    todayIdleSeconds: user.todayIdleSeconds || 0,
+                    todayAwaySeconds: user.todayAwaySeconds || 0,
+                    sessionStartTime: null
+                });
+            } catch (err) { }
+        };
+
+        const { evaluateDailyAttendance } = require('../utils/attendanceEvaluation');
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        if (newTotalWorked >= targetSeconds) {
+            session.endTime = now;
+            session.status = 'Ended';
+            await session.save();
+
+            user.todayWorkedSeconds = newTotalWorked;
+            user.isOnline = false;
+            user.lastActive = new Date();
+            await user.save();
+
+            await evaluateDailyAttendance(userId, todayStr);
+            emitOffline();
+
+            return res.status(200).json({ message: 'Congratulations! You have completed your working hours for today.', session });
+        } else if (newTotalWorked < minSessionSeconds) {
+            session.endTime = now;
+            session.status = 'Ended';
+            await session.save();
+
+            user.todayWorkedSeconds = newTotalWorked;
+            user.isOnline = false;
+            user.lastActive = new Date();
+            user.forceAbsentToday = true;
+            await user.save();
+
+            await evaluateDailyAttendance(userId, todayStr);
+            emitOffline();
+
+            return res.status(200).json({ message: 'Minimum session not completed. Shift ended.', session });
+        } else {
+            session.startTime = now;
+            session.status = 'Paused';
+            await session.save();
+
+            user.todayWorkedSeconds = newTotalWorked;
+            user.isOnline = false;
+            user.lastActive = new Date();
+            await user.save();
+
+            emitOffline();
+
+            return res.status(200).json({ message: 'Minimum session completed. Please return to complete full working hours.', session });
         }
 
-        res.status(200).json({ message: 'Session paused', session });
     } catch (error) {
         res.status(500).json({ message: 'Server Error' });
     }
@@ -135,64 +189,53 @@ exports.endSession = async (req, res) => {
         user.todayWorkedSeconds += addedDuration;
         user.isOnline = false;
         user.lastActive = new Date();
-        if (req.body.forceAbsent) {
-            user.forceAbsentToday = true;
-        }
-        await user.save();
 
-        const { getIO } = require('../config/socket');
-        try {
-            getIO().emit('employeeStatusUpdated', {
-                userId: user._id.toString(),
-                isOnline: false,
-                lastActive: user.lastActive
-            });
-        } catch (err) {
-            console.error('Socket emit error:', err);
-        }
-
-        // Mark Attendance on Shift Completion
         let settings = await Settings.findOne();
-        if (!settings) settings = { defaultShiftHours: 8, minimumSessionMinutes: 120 };
-        const targetSeconds = settings.defaultShiftHours * 3600;
-        const halfDaySeconds = targetSeconds * 0.75;
+        if (!settings) settings = { targetHours: 8 };
+        const targetSeconds = settings.targetHours * 3600;
 
-        const today = new Date().toISOString().split('T')[0];
-        let attendance = await Attendance.findOne({ userId, date: today });
+        const { evaluateDailyAttendance } = require('../utils/attendanceEvaluation');
+        const todayStr = new Date().toISOString().split('T')[0];
+        const { getIO } = require('../config/socket');
 
-        const totalWorkedToday = user.todayWorkedSeconds;
-        let status = 'Incomplete';
+        const emitOffline = () => {
+            try {
+                getIO().emit('employeeStatusUpdated', {
+                    userId: user._id.toString(),
+                    isOnline: false,
+                    statusState: 'Offline',
+                    lastActive: user.lastActive,
+                    todayWorkedSeconds: user.todayWorkedSeconds,
+                    todayActiveSeconds: user.todayActiveSeconds || 0,
+                    todayIdleSeconds: user.todayIdleSeconds || 0,
+                    todayAwaySeconds: user.todayAwaySeconds || 0,
+                    sessionStartTime: null
+                });
+            } catch (err) { }
+        };
 
-        if (user.forceAbsentToday) {
-            status = 'Absent';
-        } else if (totalWorkedToday >= targetSeconds) {
-            status = 'Present';
-        } else if (totalWorkedToday >= halfDaySeconds) {
-            status = 'Half Day';
+        if (user.todayWorkedSeconds >= targetSeconds) {
+            await user.save();
+            await evaluateDailyAttendance(userId, todayStr);
+
+            emitOffline();
+
+            return res.status(200).json({
+                message: 'Congratulations! You have completed your working hours for today.',
+                totalWorkedSeconds: user.todayWorkedSeconds
+            });
         } else {
-            status = 'Absent';
-        }
+            user.forceAbsentToday = true;
+            await user.save();
+            await evaluateDailyAttendance(userId, todayStr);
 
-        if (attendance) {
-            attendance.totalWorkedSeconds = totalWorkedToday;
-            attendance.status = status;
-            attendance.completedShift = true;
-            await attendance.save();
-        } else {
-            await Attendance.create({
-                userId,
-                date: today,
-                totalWorkedSeconds: totalWorkedToday,
-                status,
-                completedShift: true
+            emitOffline();
+
+            return res.status(200).json({
+                message: 'Shift ended early. Minimum required hours not met.',
+                totalWorkedSeconds: user.todayWorkedSeconds
             });
         }
-
-        res.status(200).json({
-            message: 'Session ended successfully and attendance marked',
-            totalWorkedSeconds: user.todayWorkedSeconds,
-            warning: user.todayWorkedSeconds < 7200 ? 'Minimum session duration is 2 hours' : null
-        });
     } catch (error) {
         res.status(500).json({ message: 'Server Error', error });
     }
@@ -233,8 +276,11 @@ exports.forceEndAbruptSession = async (userId) => {
             user.todayWorkedSeconds += addedDuration;
             user.isOnline = false;
             user.lastActive = new Date();
-            user.forceAbsentToday = true;
+            // DO NOT forceAbsent here. Only save the time, the dailyReset cron will gracefully evaluate total time and mark present or absent!
             await user.save();
+
+            const { getIO } = require('../config/socket');
+            try { getIO().emit('employeeStatusUpdated', { userId: user._id.toString(), isOnline: false, lastActive: user.lastActive, todayWorkedSeconds: user.todayWorkedSeconds, sessionStartTime: null }); } catch (err) { }
         }
         console.log(`[System] Force ended session for user ${userId} due to prolonged disconnect.`);
     } catch (err) {

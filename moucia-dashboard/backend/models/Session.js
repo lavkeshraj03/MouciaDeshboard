@@ -18,6 +18,22 @@ const sessionSchema = new mongoose.Schema({
         type: Number, // in seconds
         default: 0
     },
+    activeSeconds: {
+        type: Number, // in seconds
+        default: 0
+    },
+    idleSeconds: {
+        type: Number, // in seconds
+        default: 0
+    },
+    awaySeconds: {
+        type: Number, // in seconds
+        default: 0
+    },
+    productivityScore: {
+        type: Number, // percentage out of 100
+        default: 100
+    },
     status: {
         type: String,
         enum: ['Active', 'Paused', 'Ended'],

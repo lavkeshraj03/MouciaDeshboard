@@ -36,8 +36,8 @@ export default function AttendancePage() {
                 const response = await api.get('/attendance');
                 const logs = (response.data.logs || []).map((log: any) => ({
                     date: new Date(log.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-                    login: log.sessions?.[0]?.startTime ? new Date(log.sessions[0].startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-',
-                    logout: log.sessions?.[log.sessions.length - 1]?.endTime ? new Date(log.sessions[log.sessions.length - 1].endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-',
+                    login: log.sessions && log.sessions.length > 0 && log.sessions[0].startTime ? new Date(log.sessions[0].startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-',
+                    logout: log.sessions && log.sessions.length > 0 ? (log.sessions[log.sessions.length - 1].endTime ? new Date(log.sessions[log.sessions.length - 1].endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Working') : '-',
                     total: (log.totalWorkedSeconds / 3600).toFixed(1) + 'h',
                     status: log.status
                 }));
